@@ -1,0 +1,6 @@
+# pycache
+/api/__pycache__/
+/fictf/__pycache__/
+
+# db
+/db.sqlite3
