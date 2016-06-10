@@ -1,9 +1,13 @@
 # pycache
 /api/__pycache__/
 /fictf/__pycache__/
+*.pyc
 
 # db
 /db.sqlite3
 
-# settings
-/fictf/settings.py
+# secret key
+/fictf/secret.key
+
+# migrations
+/api/migrations/
