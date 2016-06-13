@@ -15,7 +15,7 @@ def problems_list(request):
     全てのProblemをjson形式で取得する"""
     prob_list = []
     for prob in Problem.objects.all():
-        prob_list.append({'problem_id': prob.id, 'name': prob.name, 'category': prob.category, 'points': prob.points})
+        prob_list.append({'id': prob.id, 'name': prob.name, 'category': prob.category, 'points': prob.points})
     problems_json = json.dumps(prob_list, ensure_ascii=False)
     return HttpResponse(problems_json, content_type='application/json')
 
@@ -59,10 +59,10 @@ def submit(request):
 def players_list(request):
     """/api/players_list
     引数に基づいてPlayer一覧をjson形式で取得する"""
-    players_dict = {}
+    p_list = []
     for player in Player.objects.all():
-        players_dict[player.id] = {'user': player.user.username, 'points': player.points}
-    players_json = json.dumps(players_dict, ensure_ascii=False)
+        p_list.append({'id': player.id, 'username': player.user.username, 'points': player.points})
+    players_json = json.dumps(p_list, ensure_ascii=False)
     return HttpResponse(players_json, content_type='application/json')
 
 
@@ -71,7 +71,7 @@ def player(request, player_id):
     player_idのPlayerをjson形式で取得する"""
     try:
         player = Player.objects.get(id=player_id)
-        player_dict = {'user': player.user.username, 'points': player.points}
+        player_dict = {'username': player.user.username, 'points': player.points}
         player_json = json.dumps(player_dict, ensure_ascii=False)
     except Player.DoesNotExist:
         # player_nameのPlayerが存在しない場合は404を返す
