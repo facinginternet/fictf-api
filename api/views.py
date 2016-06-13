@@ -20,11 +20,11 @@ def problems_list(request):
     return HttpResponse(problems_json, content_type='application/json')
 
 
-def problem(request, prob_id):
-    """/api/problem/(prob_id)
+def problem(request, problem_id):
+    """/api/problem/(problem_id)
     引数prob_idのProblemをjson形式で取得する"""
     try:
-        problem = Problem.objects.get(id=prob_id)
+        problem = Problem.objects.get(id=problem_id)
         problem_dict = {'name': problem.name, 'category': problem.category, 'points': problem.points, "description": problem.description}
         problem_json = json.dumps(problem_dict, ensure_ascii=False)
     except Problem.DoesNotExist:
@@ -40,7 +40,7 @@ def solved_problems(request, player_id):
         player = Player.objects.get(id=player_id)
         submits_list = []
         for sbmt in CorrectSubmit.objects.filter(player=player):
-            submits_list.append({'problem': sbmt.problem.id, 'time': str(sbmt.time)})
+            submits_list.append({'problem_id': sbmt.problem.id, 'time': str(sbmt.time)})
         submits_json = json.dumps(submits_list, ensure_ascii=False)
     except Player.DoesNotExist:
         # player_idのplayerが存在しない場合は404を返す
