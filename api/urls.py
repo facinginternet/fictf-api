@@ -6,4 +6,5 @@ urlpatterns = [
     url(r'^problem/(?P<prob_id>(\d+))$', views.problem, name='problem'),
     url(r'^players_list$', views.players_list, name='players_list'),
     url(r'^player/(?P<player_id>(\d+))$', views.player, name='player'),
+    url(r'^solved_problems/(?P<player_id>(\d+))$', views.solved_problems, name='solved_problems'),
 ]

@@ -1,6 +1,8 @@
 from django.http import HttpResponse, HttpResponseNotFound
+from django.core import serializers
 from django.shortcuts import render
-from api.models import Problem, Player
+from django.contrib.auth.models import User
+from api.models import Problem, Player, CorrectSubmit
 import json
 
 
@@ -31,11 +33,19 @@ def problem(request, prob_id):
     return HttpResponse(problem_json, content_type='application/json')
 
 
-# Todo
-def solved_problems(request, user_id):
-    """/api/solved_problems/(user_id)
-    user_idのユーザが解いた問題一覧をjson形式で取得する"""
-    pass
+def solved_problems(request, player_id):
+    """/api/solved_problems/(player_id)
+    player_idのプレイヤーが解いた問題一覧をjson形式で取得する"""
+    try:
+        player = Player.objects.get(id=player_id)
+        submits_list = []
+        for sbmt in CorrectSubmit.objects.filter(player=player):
+            submits_list.append({'problem': sbmt.problem.id, 'time': str(sbmt.time)})
+        submits_json = json.dumps(submits_list, ensure_ascii=False)
+    except Player.DoesNotExist:
+        # player_idのplayerが存在しない場合は404を返す
+        return HttpResponseNotFound(content_type='application/json')
+    return HttpResponse(submits_json, content_type='application/json')
 
 
 # Todo
@@ -45,6 +55,7 @@ def submit(request):
     pass
 
 
+# Todo 引数の実装
 def players_list(request):
     """/api/players_list
     引数に基づいてPlayer一覧をjson形式で取得する"""
@@ -56,8 +67,8 @@ def players_list(request):
 
 
 def player(request, player_id):
-    """/api/player/(player_name)
-    player_nameのPlayerをjson形式で取得する"""
+    """/api/player/(player_id)
+    player_idのPlayerをjson形式で取得する"""
     try:
         player = Player.objects.get(id=player_id)
         player_dict = {'user': player.user.username, 'points': player.points}
