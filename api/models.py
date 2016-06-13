@@ -31,4 +31,4 @@ class CorrectSubmit(models.Model):
     time = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return "%s, %s, %s" % (self.problem.name, self.player.name, self.time)
+        return "%s, %s, %s" % (self.problem.name, self.player.user.username, self.time)

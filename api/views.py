@@ -1,6 +1,6 @@
 from django.http import HttpResponse, HttpResponseNotFound
 from django.shortcuts import render
-from api.models import Problem
+from api.models import Problem, Player
 import json
 
 
@@ -45,18 +45,27 @@ def submit(request):
     pass
 
 
-# Todo
 def players_list(request):
     """/api/players_list
     引数に基づいてPlayer一覧をjson形式で取得する"""
-    pass
+    players_dict = {}
+    for player in Player.objects.all():
+        players_dict[player.id] = {'user': player.user.username, 'points': player.points}
+    players_json = json.dumps(players_dict, ensure_ascii=False)
+    return HttpResponse(players_json, content_type='application/json')
 
 
-# Todo
-def player(request, player_name):
+def player(request, player_id):
     """/api/player/(player_name)
     player_nameのPlayerをjson形式で取得する"""
-    pass
+    try:
+        player = Player.objects.get(id=player_id)
+        player_dict = {'user': player.user.username, 'points': player.points}
+        player_json = json.dumps(player_dict, ensure_ascii=False)
+    except Player.DoesNotExist:
+        # player_nameのPlayerが存在しない場合は404を返す
+        return HttpResponseNotFound(content_type='application/json')
+    return HttpResponse(player_json, content_type='application/json')
 
 
 # Todo
