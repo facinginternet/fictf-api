@@ -11,3 +11,6 @@
 
 # migrations
 /api/migrations/
+
+# .idea
+/.idea/*
