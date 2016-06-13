@@ -13,10 +13,10 @@ import json
 def problems_list(request):
     """/api/problems_list
     全てのProblemをjson形式で取得する"""
-    problems_dict = {}
+    prob_list = []
     for prob in Problem.objects.all():
-        problems_dict[prob.id] = {'name': prob.name, 'category': prob.category, 'points': prob.points}
-    problems_json = json.dumps(problems_dict, ensure_ascii=False)
+        prob_list.append({'problem_id': prob.id, 'name': prob.name, 'category': prob.category, 'points': prob.points})
+    problems_json = json.dumps(prob_list, ensure_ascii=False)
     return HttpResponse(problems_json, content_type='application/json')
 
 
