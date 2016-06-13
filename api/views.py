@@ -4,9 +4,13 @@ from api.models import Problem
 import json
 
 
+# Todo
+# ・CRUDを実装するとき，問題点数が変更された場合は全Playerのpointsを更新するようにする
+
+
 def problems_list(request):
     """/api/problems_list
-    全てのProblemをjson形式で送り返す"""
+    全てのProblemをjson形式で取得する"""
     problems_dict = {}
     for prob in Problem.objects.all():
         problems_dict[prob.id] = {'name': prob.name, 'category': prob.category, 'points': prob.points}
@@ -16,7 +20,7 @@ def problems_list(request):
 
 def problem(request, prob_id):
     """/api/problem/(prob_id)
-    引数prob_idのProblemをjson形式で送り返す"""
+    引数prob_idのProblemをjson形式で取得する"""
     try:
         problem = Problem.objects.get(id=prob_id)
         problem_dict = {'name': problem.name, 'category': problem.category, 'points': problem.points, "description": problem.description}
@@ -27,3 +31,36 @@ def problem(request, prob_id):
     return HttpResponse(problem_json, content_type='application/json')
 
 
+# Todo
+def solved_problems(request, user_id):
+    """/api/solved_problems/(user_id)
+    user_idのユーザが解いた問題一覧をjson形式で取得する"""
+    pass
+
+
+# Todo
+def submit(request):
+    """/api/submit
+    submitが正しいかどうかを判定し，データベースを操作する"""
+    pass
+
+
+# Todo
+def players_list(request):
+    """/api/players_list
+    引数に基づいてPlayer一覧をjson形式で取得する"""
+    pass
+
+
+# Todo
+def player(request, player_name):
+    """/api/player/(player_name)
+    player_nameのPlayerをjson形式で取得する"""
+    pass
+
+
+# Todo
+def login_user(request):
+    """/api/login_user
+    今ログイン状態ならば，そのユーザの詳細情報をjson形式で取得する"""
+    pass

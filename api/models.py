@@ -23,6 +23,7 @@ class Player(models.Model):
     def __str__(self):
         return self.user.username
 
+
 class CorrectSubmit(models.Model):
     """正解の提出"""
     problem = models.ForeignKey(Problem)
