@@ -1,0 +1,43 @@
+<script>
+    // 2回入力されたパスワードが等しいかどうかを評価する
+    check = function(){
+        var pass1 = document.getElementById('password1');
+        var pass2 = document.getElementById('password2');
+        if(pass1.value == pass2.value){
+            return true
+        }else{
+            return false
+        }
+    }
+</script>
+
+<form method="POST" action="http://127.0.0.1:8000/api/signup/" name="signup_form" onSubmit="return check()">
+    <!-- cokkie（csrftoken）をcsrfmiddlewaretokenとしてPOSTで送り返す．これを省くとエラーになる -->
+    <input type="hidden" name="csrfmiddlewaretoken">
+    username: <input type="text" name="username"><br><br>
+    password: <input type="password" name="password" id="password1"><br>
+    retype password: <input type="password" name="password" id="password2"><br>
+    <input type="submit" value="login"><br>
+</form>
+
+<script   src="https://code.jquery.com/jquery-3.0.0.js"   integrity="sha256-jrPLZ+8vDxt2FnE1zvZXCkCcebI/C8Dt5xyaQBjxQIo="   crossorigin="anonymous"></script>
+<script>
+    // using jQuery
+    function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie != '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = jQuery.trim(cookies[i]);
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    var csrftoken = getCookie('csrftoken');
+    document.forms.signup_form.csrfmiddlewaretoken.value = csrftoken
+</script>

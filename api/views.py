@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse, HttpResponseNotFound
 from django.views.decorators.http import require_POST
 from django.contrib.auth.models import User
+from django.db import IntegrityError
 from django.shortcuts import render
 from api.models import Problem, Player, CorrectSubmit
 import json
@@ -150,16 +151,15 @@ def login_player(request):
 def log_in(request):
     """[POST] /api/login/
     POSTでusernameとpasswordを受け取り，認証を行う．ログイン成否をjson形式で取得する"""
-    result = False
+    accept = False
     if 'username' in request.POST and 'password' in request.POST:
         username = request.POST['username']
         password = request.POST['password']
-        user = authenticate(username=username, password=password)
-        print(user)
-        if user and user.is_active:
-            login(request, user)
-            result = True
-    result_json = json.dumps({'accept': result})
+        auth_user = authenticate(username=username, password=password)
+        if auth_user and auth_user.is_active:
+            login(request, auth_user)
+            accept = True
+    result_json = json.dumps({'accept': accept})
     return HttpResponse(result_json, content_type='application/json')
 
 
@@ -171,8 +171,50 @@ def log_out(request):
     return HttpResponse(result_json, content_type='application/json')
 
 
+@require_POST
+def sign_up(request):
+    """[post] /api/signup
+    POSTでusernameとpasswordを受け取り，プレイヤーを新規作成する．作成に成功した場合はログインする．作成の成否をjson形式で取得する"""
+    accept = True
+    error = []
+    if 'username' in request.POST and 'password' in request.POST:
+        username = request.POST['username']
+        password = request.POST['password']
+        if password == '':
+            # passwordが空の場合，作成失敗
+            accept = False
+            error.append('empty_password')
+        elif len(password) < 6:
+            # passwordの長さが6文字未満の場合，作成失敗
+            accept = False
+            error.append('too_short_password')
+        if username == '':
+            # usernameが空の場合，作成失敗
+            accept = False
+            error.append('empty_username')
+        if accept:
+            try:
+                user = User.objects.create_user(username=username, password=password)
+                Player.objects.create(user=user)
+                auth_user = authenticate(username=username, password=password)
+                login(request, auth_user)
+            except IntegrityError:
+                # ユーザ名が重複している場合，作成失敗
+                accept = False
+                error.append('duplicate_username')
+    else:
+        accept = False
+        error.append('insufficient_POST_data')
+    result_json = json.dumps({'accept': accept, 'error': error})
+    return HttpResponse(result_json, content_type='application/json')
+
+
 def login_test(request):
     return render(request, 'login_test.html')
+
+
+def signup_test(request):
+    return render(request, 'signup_test.html')
 
 
 def submit_test(request):
