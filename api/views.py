@@ -6,8 +6,8 @@ from django.contrib.auth.models import User
 from django.db import IntegrityError
 from django.shortcuts import render
 from api.models import Problem, Player, CorrectSubmit
+from dateutil import tz
 import json
-import pytz
 
 
 # Todo
@@ -45,7 +45,7 @@ def solved_problems(request, player_id):
         submits_list = []
         jst = pytz.timezone('Asia/Tokyo')
         for sbmt in CorrectSubmit.objects.filter(player=plyr):
-            submits_list.append({'problem_id': sbmt.problem.id, 'time': str(sbmt.time.astimezone(jst))})
+            submits_list.append({'problem_id': sbmt.problem.id, 'time': str(sbmt.time.astimezone(tz.tzlocal()))})
         submits_json = json.dumps(submits_list, ensure_ascii=False)
     except Player.DoesNotExist:
         # player_idのplayerが存在しない場合は404を返す
@@ -174,7 +174,8 @@ def log_out(request):
 @require_POST
 def sign_up(request):
     """[post] /api/signup
-    POSTでusernameとpasswordを受け取り，プレイヤーを新規作成する．作成に成功した場合はログインする．作成の成否をjson形式で取得する"""
+    POSTでusernameとpasswordを受け取り，プレイヤーを新規作成する．
+    作成に成功した場合はログインする．作成の成否をjson形式で取得する"""
     accept = True
     error = []
     if 'username' in request.POST and 'password' in request.POST:

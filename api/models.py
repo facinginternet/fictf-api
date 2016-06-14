@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 from django.db import models
 from django.utils.timezone import now
 from django.contrib.auth.models import User
-import pytz
+from dateutil import tz
 
 
 class Problem(models.Model):
@@ -36,5 +36,4 @@ class CorrectSubmit(models.Model):
     time = models.DateTimeField(default=now)
 
     def __str__(self):
-        jst = pytz.timezone('Asia/Tokyo')
-        return "%s, %s, %s" % (self.problem.name, self.player.user.username, self.time.astimezone(jst))
+        return "%s, %s, %s" % (self.problem.name, self.player.user.username, self.time.astimezone(tz.tzlocal()))
