@@ -1,9 +1,12 @@
+from django.utils.datastructures import MultiValueDictKeyError
+from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse, HttpResponseNotFound
-from django.core import serializers
-from django.shortcuts import render
+from django.views.decorators.http import require_POST
 from django.contrib.auth.models import User
+from django.shortcuts import render
 from api.models import Problem, Player, CorrectSubmit
 import json
+import pytz
 
 
 # Todo
@@ -11,7 +14,7 @@ import json
 
 
 def problems_list(request):
-    """/api/problems_list
+    """/api/problems_list/
     全てのProblemをjson形式で取得する"""
     prob_list = []
     for prob in Problem.objects.all():
@@ -21,11 +24,11 @@ def problems_list(request):
 
 
 def problem(request, problem_id):
-    """/api/problem/(problem_id)
+    """/api/problem/(problem_id)/
     引数prob_idのProblemをjson形式で取得する"""
     try:
-        problem = Problem.objects.get(id=problem_id)
-        problem_dict = {'name': problem.name, 'genre': problem.genre, 'points': problem.points, "description": problem.description}
+        prob = Problem.objects.get(id=problem_id)
+        problem_dict = {'name': prob.name, 'genre': prob.genre, 'points': prob.points, "description": prob.description}
         problem_json = json.dumps(problem_dict, ensure_ascii=False)
     except Problem.DoesNotExist:
         # prob_idのProblemが存在しない場合は404を返す
@@ -34,13 +37,14 @@ def problem(request, problem_id):
 
 
 def solved_problems(request, player_id):
-    """/api/solved_problems/(player_id)
+    """/api/solved_problems/(player_id)/
     player_idのプレイヤーが解いた問題一覧をjson形式で取得する"""
     try:
-        player = Player.objects.get(user=player_id)
+        plyr = Player.objects.get(user=player_id)
         submits_list = []
-        for sbmt in CorrectSubmit.objects.filter(player=player):
-            submits_list.append({'problem_id': sbmt.problem.id, 'time': str(sbmt.time)})
+        jst = pytz.timezone('Asia/Tokyo')
+        for sbmt in CorrectSubmit.objects.filter(player=plyr):
+            submits_list.append({'problem_id': sbmt.problem.id, 'time': str(sbmt.time.astimezone(jst))})
         submits_json = json.dumps(submits_list, ensure_ascii=False)
     except Player.DoesNotExist:
         # player_idのplayerが存在しない場合は404を返す
@@ -48,15 +52,39 @@ def solved_problems(request, player_id):
     return HttpResponse(submits_json, content_type='application/json')
 
 
-# Todo
+@require_POST
 def submit(request):
-    """/api/submit
-    submitが正しいかどうかを判定し，データベースを操作する"""
-    pass
+    """[POST] /api/submit/
+    POSTで受け取ったflagが正しいかどうかを判定し，成否をjson形式で取得する
+    プレイヤーがその問題を解いたのが初めてであった場合，CorrectSubmitレコードを発行する"""
+    correct = False
+    try:
+        problem_id = int(request.POST['problem_id'])
+        prob = Problem.objects.get(id=problem_id)
+        if request.POST['flag'] == prob.flag:
+            correct = True
+    except Problem.DoesNotExist or MultiValueDictKeyError or ValueError:
+        # prob_idのProblemが存在しない場合，またはPOSTに'flag'が存在しない場合は404を返す
+        return HttpResponseNotFound(content_type='application/json')
+
+    if request.user.is_authenticated():
+        # ログイン時
+        solved = CorrectSubmit.objects.filter(problem=prob, player=request.user.id).count() > 0
+        result_json = json.dumps({'correct': correct, 'solved': solved})
+        if correct and not solved:
+            # プレイヤーが初めてこの問題を正解した
+            CorrectSubmit.objects.create(problem=prob, player=Player.objects.get(user=request.user))
+            plyr = Player.objects.get(user=request.user)
+            plyr.points += prob.points
+            plyr.save()
+    else:
+        # 非ログイン時
+        result_json = json.dumps({'correct': correct, 'solved': False})
+    return HttpResponse(result_json, content_type='application/json')
 
 
 def players_list(request):
-    """/api/players_list
+    """/api/players_list/?(sort, order, num)
     引数に基づいてPlayer一覧をjson形式で取得する"""
 
     # どのカラムの情報でソートするか（デフォルト: user.id）
@@ -85,19 +113,19 @@ def players_list(request):
 
     p_list = []
     for i in range(num):
-        player = player_objects[i]
-        p_list.append({'id': player.user.id, 'username': player.user.username, 'points': player.points})
+        plyr = player_objects[i]
+        p_list.append({'id': plyr.user.id, 'username': plyr.user.username, 'points': plyr.points})
 
     players_json = json.dumps(p_list, ensure_ascii=False)
     return HttpResponse(players_json, content_type='application/json')
 
 
 def player(request, player_id):
-    """/api/player/(player_id)
+    """/api/player/(player_id)/
     player_idのPlayerをjson形式で取得する"""
     try:
-        player = Player.objects.get(user=player_id)
-        player_dict = {'username': player.user.username, 'points': player.points}
+        plyr = Player.objects.get(user=player_id)
+        player_dict = {'username': plyr.user.username, 'points': plyr.points}
         player_json = json.dumps(player_dict, ensure_ascii=False)
     except Player.DoesNotExist:
         # player_nameのPlayerが存在しない場合は404を返す
@@ -105,8 +133,47 @@ def player(request, player_id):
     return HttpResponse(player_json, content_type='application/json')
 
 
-# Todo
-def login_user(request):
-    """/api/login_user
-    ログインしている状態ならば，そのユーザの詳細情報をjson形式で取得する"""
-    pass
+def login_player(request):
+    """/api/login_player/
+    プレイヤーがログインしている状態ならば，そのプレイヤーの詳細情報をjson形式で取得する"""
+    if request.user.is_authenticated():
+        plyr = Player.objects.get(user=request.user)
+        player_dict = {'username': plyr.user.username, 'email': plyr.user.email, 'points': plyr.points}
+        player_json = json.dumps(player_dict, ensure_ascii=False)
+    else:
+        # ログインしていない場合は404を返す
+        return HttpResponseNotFound(content_type='application/json')
+    return HttpResponse(player_json, content_type='application/json')
+
+
+@require_POST
+def log_in(request):
+    """[POST] /api/login/
+    POSTでusernameとpasswordを受け取り，認証を行う．ログイン成否をjson形式で取得する"""
+    result = False
+    if 'username' in request.POST and 'password' in request.POST:
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(username=username, password=password)
+        print(user)
+        if user and user.is_active:
+            login(request, user)
+            result = True
+    result_json = json.dumps({'accept': result})
+    return HttpResponse(result_json, content_type='application/json')
+
+
+def log_out(request):
+    """/api/login/
+    ログアウトする．ログアウト成否をjson形式で取得する"""
+    logout(request)
+    result_json = json.dumps({'accept': True})
+    return HttpResponse(result_json, content_type='application/json')
+
+
+def login_test(request):
+    return render(request, 'login_test.html')
+
+
+def submit_test(request):
+    return render(request, 'submit_test.html')
