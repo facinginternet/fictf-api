@@ -1,3 +1,11 @@
+<!DOCTYPE html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Sign Up Test</title>
+</head>
+
+<body>
 <script>
     // 2回入力されたパスワードが等しいかどうかを評価する
     check = function(){
@@ -12,12 +20,12 @@
 </script>
 
 <form method="POST" action="http://127.0.0.1:8000/api/signup/" name="signup_form" onSubmit="return check()">
-    <!-- cokkie（csrftoken）をcsrfmiddlewaretokenとしてPOSTで送り返す．これを省くとエラーになる -->
+    <!-- cookie（csrftoken）をcsrfmiddlewaretokenとしてPOSTで送り返す．これを省くとエラーになる -->
     <input type="hidden" name="csrfmiddlewaretoken">
     username: <input type="text" name="username"><br><br>
     password: <input type="password" name="password" id="password1"><br>
     retype password: <input type="password" name="password" id="password2"><br>
-    <input type="submit" value="login"><br>
+    <input type="submit" value="Send"><br>
 </form>
 
 <script   src="https://code.jquery.com/jquery-3.0.0.js"   integrity="sha256-jrPLZ+8vDxt2FnE1zvZXCkCcebI/C8Dt5xyaQBjxQIo="   crossorigin="anonymous"></script>
@@ -41,3 +49,6 @@
     var csrftoken = getCookie('csrftoken');
     document.forms.signup_form.csrfmiddlewaretoken.value = csrftoken
 </script>
+</body>
+
+</html>

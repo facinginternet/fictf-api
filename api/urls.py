@@ -1,5 +1,5 @@
 from django.conf.urls import url
-from . import views
+from api import views
 
 urlpatterns = [
     url(r'^problems_list/$', views.problems_list, name='problems_list'),
@@ -12,6 +12,7 @@ urlpatterns = [
     url(r'^login/$', views.log_in, name='log_in'),
     url(r'^logout/$', views.log_out, name='log_out'),
     url(r'^signup/$', views.sign_up, name='sign_up'),
+
     url(r'^login_test/$', views.login_test),
     url(r'^signup_test/$', views.signup_test),
     url(r'^submit_test/$', views.submit_test),

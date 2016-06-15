@@ -1,5 +1,13 @@
+<!DOCTYPE html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Login Test</title>
+</head>
+
+<body>
 <form method="POST" action="http://127.0.0.1:8000/api/login/" name="login_form">
-    <!-- cokkie（csrftoken）をcsrfmiddlewaretokenとしてPOSTで送り返す．これを省くとエラーになる -->
+    <!-- cookie（csrftoken）をcsrfmiddlewaretokenとしてPOSTで送り返す．これを省くとエラーになる -->
     <input type="hidden" name="csrfmiddlewaretoken">
     username: <input type="text" name="username"><br>
     password: <input type="password" name="password"><br>
@@ -27,3 +35,6 @@
     var csrftoken = getCookie('csrftoken');
     document.forms.login_form.csrfmiddlewaretoken.value = csrftoken
 </script>
+</body>
+
+</html>

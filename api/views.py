@@ -1,13 +1,16 @@
-from django.utils.datastructures import MultiValueDictKeyError
+import json
+
+from dateutil import tz
 from django.contrib.auth import authenticate, login, logout
-from django.http import HttpResponse, HttpResponseNotFound
-from django.views.decorators.http import require_POST
 from django.contrib.auth.models import User
 from django.db import IntegrityError
+from django.http import HttpResponse, HttpResponseNotFound
+from django.middleware import csrf
 from django.shortcuts import render
+from django.utils.datastructures import MultiValueDictKeyError
+from django.views.decorators.http import require_POST
+
 from api.models import Problem, Player, CorrectSubmit
-from dateutil import tz
-import json
 
 
 # Todo
@@ -43,7 +46,6 @@ def solved_problems(request, player_id):
     try:
         plyr = Player.objects.get(user=player_id)
         submits_list = []
-        jst = pytz.timezone('Asia/Tokyo')
         for sbmt in CorrectSubmit.objects.filter(player=plyr):
             submits_list.append({'problem_id': sbmt.problem.id, 'time': str(sbmt.time.astimezone(tz.tzlocal()))})
         submits_json = json.dumps(submits_list, ensure_ascii=False)
@@ -139,7 +141,7 @@ def login_player(request):
     プレイヤーがログインしている状態ならば，そのプレイヤーの詳細情報をjson形式で取得する"""
     if request.user.is_authenticated():
         plyr = Player.objects.get(user=request.user)
-        player_dict = {'username': plyr.user.username, 'email': plyr.user.email, 'points': plyr.points}
+        player_dict = {'id': plyr.user.id, 'username': plyr.user.username, 'email': plyr.user.email, 'points': plyr.points}
         player_json = json.dumps(player_dict, ensure_ascii=False)
     else:
         # ログインしていない場合は404を返す
@@ -156,7 +158,7 @@ def log_in(request):
         username = request.POST['username']
         password = request.POST['password']
         auth_user = authenticate(username=username, password=password)
-        if auth_user and auth_user.is_active:
+        if auth_user and auth_user.is_active and Player.objects.filter(user=auth_user):
             login(request, auth_user)
             accept = True
     result_json = json.dumps({'accept': accept})
@@ -211,12 +213,18 @@ def sign_up(request):
 
 
 def login_test(request):
-    return render(request, 'login_test.html')
+    response = render(request, 'api/login_test.html')
+    response.set_cookie(key='csrftoken', value=csrf.get_token(request))
+    return response
 
 
 def signup_test(request):
-    return render(request, 'signup_test.html')
+    response = render(request, 'api/signup_test.html')
+    response.set_cookie(key='csrftoken', value=csrf.get_token(request))
+    return response
 
 
 def submit_test(request):
-    return render(request, 'submit_test.html')
+    response = render(request, 'api/submit_test.html')
+    response.set_cookie(key='csrftoken', value=csrf.get_token(request))
+    return response

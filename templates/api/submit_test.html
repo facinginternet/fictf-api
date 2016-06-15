@@ -1,9 +1,17 @@
+<!DOCTYPE html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Submit Test</title>
+</head>
+
+<body>
 <form method="POST" action="http://127.0.0.1:8000/api/submit/" name="submit_form">
-    <!-- cokkie（csrftoken）をcsrfmiddlewaretokenとしてPOSTで送り返す．これを省くとエラーになる -->
+    <!-- cookie（csrftoken）をcsrfmiddlewaretokenとしてPOSTで送り返す．これを省くとエラーになる -->
     <input type="hidden" name="csrfmiddlewaretoken">
     problem_id: <input type="text" name="problem_id"><br>
     flag: <input type="text" name="flag"><br>
-    <input type="submit" value="login"><br>
+    <input type="submit" value="Submit"><br>
 </form>
 
 <script   src="https://code.jquery.com/jquery-3.0.0.js"   integrity="sha256-jrPLZ+8vDxt2FnE1zvZXCkCcebI/C8Dt5xyaQBjxQIo="   crossorigin="anonymous"></script>
@@ -27,3 +35,6 @@
     var csrftoken = getCookie('csrftoken');
     document.forms.submit_form.csrfmiddlewaretoken.value = csrftoken
 </script>
+</body>
+
+</html>
