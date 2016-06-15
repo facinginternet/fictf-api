@@ -1,10 +1,8 @@
-import json
-
 from dateutil import tz
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.db import IntegrityError
-from django.http import HttpResponse, HttpResponseNotFound
+from django.http import HttpResponse, HttpResponseNotFound, HttpResponseForbidden
 from django.middleware import csrf
 from django.shortcuts import render
 from django.utils.datastructures import MultiValueDictKeyError
@@ -12,9 +10,7 @@ from django.views.decorators.http import require_POST
 
 from api.models import Problem, Player, CorrectSubmit
 
-
-# Todo
-# ・CRUDを実装するとき，問題点数が変更された場合は全Playerのpointsを更新するようにする
+import json
 
 
 def problems_list(request):
@@ -22,7 +18,7 @@ def problems_list(request):
     全てのProblemをjson形式で取得する"""
     prob_list = []
     for prob in Problem.objects.all():
-        prob_list.append({'id': prob.id, 'name': prob.name, 'genre': prob.genre, 'points': prob.points})
+        prob_list.append({'id': prob.id, 'name': prob.name, 'genre': prob.genre, 'points': prob.points, 'author_id': prob.author_id})
     problems_json = json.dumps(prob_list, ensure_ascii=False)
     return HttpResponse(problems_json, content_type='application/json')
 
@@ -32,7 +28,7 @@ def problem(request, problem_id):
     引数prob_idのProblemをjson形式で取得する"""
     try:
         prob = Problem.objects.get(id=problem_id)
-        problem_dict = {'name': prob.name, 'genre': prob.genre, 'points': prob.points, "description": prob.description}
+        problem_dict = {'name': prob.name, 'genre': prob.genre, 'points': prob.points, "description": prob.description, 'author_id': prob.author_id}
         problem_json = json.dumps(problem_dict, ensure_ascii=False)
     except Problem.DoesNotExist:
         # prob_idのProblemが存在しない場合は404を返す
@@ -46,8 +42,8 @@ def solved_problems(request, player_id):
     try:
         plyr = Player.objects.get(user=player_id)
         submits_list = []
-        for sbmt in CorrectSubmit.objects.filter(player=plyr):
-            submits_list.append({'problem_id': sbmt.problem.id, 'time': str(sbmt.time.astimezone(tz.tzlocal()))})
+        for sbmt in plyr.submits.all():
+            submits_list.append({'problem_id': sbmt.problem_id, 'date': str(sbmt.date.astimezone(tz.tzlocal()))})
         submits_json = json.dumps(submits_list, ensure_ascii=False)
     except Player.DoesNotExist:
         # player_idのplayerが存在しない場合は404を返す
@@ -117,7 +113,7 @@ def players_list(request):
     p_list = []
     for i in range(num):
         plyr = player_objects[i]
-        p_list.append({'id': plyr.user.id, 'username': plyr.user.username, 'points': plyr.points})
+        p_list.append({'id': plyr.user_id, 'username': plyr.user.username, 'points': plyr.points})
 
     players_json = json.dumps(p_list, ensure_ascii=False)
     return HttpResponse(players_json, content_type='application/json')
@@ -140,12 +136,16 @@ def login_player(request):
     """/api/login_player/
     プレイヤーがログインしている状態ならば，そのプレイヤーの詳細情報をjson形式で取得する"""
     if request.user.is_authenticated():
-        plyr = Player.objects.get(user=request.user)
-        player_dict = {'id': plyr.user.id, 'username': plyr.user.username, 'email': plyr.user.email, 'points': plyr.points}
-        player_json = json.dumps(player_dict, ensure_ascii=False)
+        try:
+            plyr = request.user.player
+            player_dict = {'id': plyr.user_id, 'username': plyr.user.username, 'email': plyr.user.email, 'points': plyr.points}
+            player_json = json.dumps(player_dict, ensure_ascii=False)
+        except Player.DoesNotExist:
+            # playerが存在しない場合は404を返す
+            return HttpResponseNotFound(content_type='application/json')
     else:
-        # ログインしていない場合は404を返す
-        return HttpResponseNotFound(content_type='application/json')
+        # ログインしていない場合は403を返す
+        return HttpResponseForbidden(content_type='application/json')
     return HttpResponse(player_json, content_type='application/json')
 
 
