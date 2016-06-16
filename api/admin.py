@@ -4,6 +4,18 @@ from api.models import Problem, Player, CorrectSubmit
 from django.contrib.contenttypes.models import ContentType
 
 
+def recalculate_points(problem):
+    """引数の problem を解いたことがある全ての player の獲得点数を再計算する"""
+    for prob_submit in problem.submits.all():
+        player = prob_submit.player
+        points = 0
+        for plyr_submit in player.submits.all():
+            solved_prob = plyr_submit.problem
+            points += solved_prob.points
+        player.points = points
+        player.save()
+
+
 class ProblemAdmin(admin.ModelAdmin):
     list_filter = ('genre', 'author', )
     list_display = ('id', 'name', 'genre', 'points', 'author', )
@@ -41,20 +53,23 @@ class ProblemAdmin(admin.ModelAdmin):
             recalculate_points(problem)
 
 
-def recalculate_points(problem):
-    """引数の problem を解いたことがある全ての player の獲得点数を再計算する"""
-    for prob_submit in problem.submits.all():
-        player = prob_submit.player
-        points = 0
-        for plyr_submit in player.submits.all():
-            solved_prob = plyr_submit.problem
-            points += solved_prob.points
-        player.points = points
-        player.save()
+def change_permission_for_edit_problems(players, grant_permission):
+    """players の problems 編集権限を変更する"""
+    for player in players:
+        user = player.user
+        user.is_staff = grant_permission
+        prob_ct = ContentType.objects.get_for_model(Problem)
+        permissions = Permission.objects.filter(content_type=prob_ct)
+        for permission in permissions:
+            if grant_permission:
+                user.user_permissions.add(permission)
+            else:
+                user.user_permissions.remove(permission)
+        user.save()
 
 
 class PlayerAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'points')
+    list_display = ('id', 'user', 'points', 'problem_editor')
     fieldsets = (
         (None, {'fields': ('user', 'points', )}),
     )
@@ -63,27 +78,39 @@ class PlayerAdmin(admin.ModelAdmin):
     def id(self, player):
         return player.user.id
 
+    def problem_editor(self, player):
+        # 問題編集の権限を持っているかどうか
+        if not player.user.is_staff:
+            return False
+        prob_ct = ContentType.objects.get_for_model(Problem)
+        permissions = Permission.objects.filter(content_type=prob_ct)
+        for permission in permissions:
+            if not player.user.user_permissions.filter(id=permission.id):
+                return False
+        return True
+    problem_editor.short_description = 'problems 編集権限'
+
     def get_actions(self, request):
-        # 管理者のみ grant_problems_edit_permission を呼び出せるようにする
+        # 管理者のみ change_permission_for_edit_problems を呼び出せるようにする
         actions = super(PlayerAdmin, self).get_actions(request)
         if request.user.is_superuser:
-            gpep = PlayerAdmin.grant_problems_edit_permission
-            actions['grant_problems_edit_permission'] = (gpep, 'grant_problems_edit_permission', gpep.short_description)
+            gpep = PlayerAdmin.grant_permission_for_edit_problems
+            rpep = PlayerAdmin.remove_permission_for_edit_problems
+            actions['grant_permission_for_edit_problems'] = (gpep, 'grant_permission_for_edit_problems', gpep.short_description)
+            actions['remove_permission_for_edit_problems'] = (rpep, 'remove_permission_for_edit_problems', rpep.short_description)
             return actions
         else:
             return actions
 
-    def grant_problems_edit_permission(self, request, players):
-        # 選択された player に problems を編集する権限を与える
-        for player in players:
-            user = player.user
-            user.is_staff = True
-            prob_ct = ContentType.objects.get_for_model(Problem)
-            permissions = Permission.objects.filter(content_type=prob_ct)
-            for permission in permissions:
-                user.user_permissions.add(permission)
-            user.save()
-    grant_problems_edit_permission.short_description = "選択された players に problems を編集する権限を与える"
+    def grant_permission_for_edit_problems(self, request, players):
+        # problems を編集する権限を与える
+        change_permission_for_edit_problems(players, grant_permission=True)
+    grant_permission_for_edit_problems.short_description = "problems を編集する権限を与える"
+
+    def remove_permission_for_edit_problems(self, request, players):
+        # problems を編集する権限を取り消す
+        change_permission_for_edit_problems(players, grant_permission=False)
+    remove_permission_for_edit_problems.short_description = "problems を編集する権限を取り消す"
 
 
 class CorrectSubmitAdmin(admin.ModelAdmin):
